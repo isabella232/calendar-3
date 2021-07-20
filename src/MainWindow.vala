@@ -192,7 +192,7 @@ public class Maya.MainWindow : Hdy.ApplicationWindow {
             return "x11:%x".printf ((uint) xid);
         } else if (window is Gdk.Wayland.Window) {
             var handle = "wayland:";
-            ((Gdk.Wayland.Window) window).export_handle ((w,h) => {
+            ((Gdk.Wayland.Window) window).export_handle ((w, h) => {
                 handle += h;
                 export.callback ();
             });
