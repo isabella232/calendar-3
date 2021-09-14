@@ -29,6 +29,7 @@ namespace Maya {
         public MainWindow window;
         public static GLib.Settings? saved_state = null;
         public static GLib.Settings? wingpanel_settings = null;
+        public static bool run_in_background = false;
 
         static construct {
             if (SettingsSchemaSource.get_default ().lookup ("io.elementary.calendar.savedstate", true) != null) {
@@ -45,6 +46,11 @@ namespace Maya {
 
             application_id = Build.EXEC_NAME;
 
+            GLib.Intl.setlocale (LocaleCategory.ALL, "");
+            GLib.Intl.bindtextdomain (GETTEXT_PACKAGE, LOCALEDIR);
+            GLib.Intl.bind_textdomain_codeset (GETTEXT_PACKAGE, "UTF-8");
+            GLib.Intl.textdomain (GETTEXT_PACKAGE);
+
             var provider = new Gtk.CssProvider ();
             provider.load_from_resource ("/io/elementary/calendar/Application.css");
             Gtk.StyleContext.add_provider_for_screen (Gdk.Screen.get_default (), provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION);
@@ -53,10 +59,18 @@ namespace Maya {
         public const OptionEntry[] APP_OPTIONS = {
             { "add-event", 'a', 0, OptionArg.NONE, out Option.add_event, N_("Create an event"), null },
             { "show-day", 's', 0, OptionArg.STRING, out Option.show_day, N_("Focus the given day"), N_("date") },
+            { "background", 'b', 0, OptionArg.NONE, out run_in_background, "Run the Application in background", null},
             { null }
         };
 
         protected override void activate () {
+            if (run_in_background) {
+                run_in_background = false;
+                new Calendar.TodayEventMonitor ();
+                hold ();
+                return;
+            }
+
             if (get_windows () != null) {
                 get_windows ().data.present (); // present window if app is already running
                 return;
@@ -160,20 +174,28 @@ namespace Maya {
         }
 
         private void ask_for_background () {
-            var portal = Portal.Background.get ();
-            string[] cmd = { "/app/libexec/io.elementary.calendar-daemon" };
+            try {
+                var portal = Portal.Background.get ();
+                string[] cmd = { "io.elementary.calendar", "--background" };
 
-            window.export.begin ((obj, res) => {
-                var options = new HashTable<string, Variant> (str_hash, str_equal);
-                options["handle_token"] = Portal.generate_token ();
-                options["reason"] = _("Calendar wants to initialize with the session");
-                options["commandline"] = cmd;
-                options["dbus-activatable"] = false;
-                options["autostart"] = true;
+                window.export.begin ((obj, res) => {
+                    var options = new HashTable<string, Variant> (str_hash, str_equal);
+                    options["handle_token"] = Portal.generate_token ();
+                    options["reason"] = _("Calendar wants to initialize with the session");
+                    options["commandline"] = cmd;
+                    options["dbus-activatable"] = false;
+                    options["autostart"] = true;
 
-                // TODO: handle response
-                portal.request_background (window.export.end (res), options);
-            });
+                    // TODO: handle response
+                    try {
+                        portal.request_background (window.export.end (res), options);
+                    } catch (Error e) {
+                        warning ("couldnt ask for background access: %s", e.message);
+                    }
+                });
+            } catch (Error e) {
+                warning ("cloudnt connect to portal: %s", e.message);
+            }
         }
 
         public static DateTime get_selected_datetime () {
