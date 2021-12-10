@@ -23,7 +23,7 @@ pkgconfig = import('pkgconfig')
 
 glib_dep = dependency('glib-2.0')
 gee_dep = dependency('gee-0.8')
-granite_dep = dependency('granite', version: '>=6.0.0')
+granite_dep = dependency('granite', version: '>=6.2.0')
 gtk_dep = dependency('gtk+-3.0', version: '>=3.22')
 gdk_dep = [ dependency('gdk-x11-3.0'), dependency('gdk-wayland-3.0') ]
 handy_dep = dependency('libhandy-1', version: '>=0.90.0')
