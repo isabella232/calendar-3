@@ -29,6 +29,12 @@ namespace Portal {
         );
     }
 
+    [DBus (name = "org.freedesktop.portal.Request")]
+    interface Request : Object {
+        public signal void response (uint response, HashTable<string, Variant> results);
+        public abstract void close () throws IOError, DBusError;
+    }
+
     [DBus (name = "org.freedesktop.portal.Background")]
     interface Background : Object {
         public abstract uint version { get; }
@@ -42,6 +48,14 @@ namespace Portal {
             return background;
         }
 
-        public abstract ObjectPath request_background (string window_handle, HashTable<string, Variant> options) throws IOError, DBusError;
+        [DBus (visible = false)]
+        public Request request_background (string window_handle, HashTable<string, Variant> options) throws IOError, DBusError {
+            var connection = GLib.Application.get_default ().get_dbus_connection ();
+            var path = _request_background (window_handle, options);
+            return connection.get_proxy_sync (DBUS_DESKTOP_NAME, path);
+        }
+
+        [DBus (name = "RequestBackground")]
+        public abstract ObjectPath _request_background (string window_handle, HashTable<string, Variant> options) throws IOError, DBusError;
     }
 }

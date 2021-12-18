@@ -64,10 +64,17 @@ namespace Maya {
         };
 
         protected override void activate () {
+            new Calendar.TodayEventMonitor ();
+            hold ();
+
             if (run_in_background) {
+                ask_for_background.begin ((obj, res) => {
+                    if (!ask_for_background.end (res)) {
+                        release ();
+                    }
+                });
+
                 run_in_background = false;
-                new Calendar.TodayEventMonitor ();
-                hold ();
                 return;
             }
 
@@ -102,10 +109,6 @@ namespace Maya {
                     window.on_tb_add_clicked (window.calview.selected_date);
                     return false;
                 });
-            }
-
-            if (FileUtils.test ("/.flatpak-info", FileTest.EXISTS)) {
-                ask_for_background ();
             }
 
             var granite_settings = Granite.Settings.get_default ();
@@ -173,29 +176,38 @@ namespace Maya {
             Calendar.EventStore.get_default ().delete_trashed_calendars ();
         }
 
-        private void ask_for_background () {
-            try {
-                var portal = Portal.Background.get ();
-                string[] cmd = { "io.elementary.calendar", "--background" };
-
-                window.export.begin ((obj, res) => {
-                    var options = new HashTable<string, Variant> (str_hash, str_equal);
-                    options["handle_token"] = Portal.generate_token ();
-                    options["reason"] = _("Calendar wants to initialize with the session");
-                    options["commandline"] = cmd;
-                    options["dbus-activatable"] = false;
-                    options["autostart"] = true;
-
-                    // TODO: handle response
-                    try {
-                        portal.request_background (window.export.end (res), options);
-                    } catch (Error e) {
-                        warning ("couldnt ask for background access: %s", e.message);
-                    }
-                });
-            } catch (Error e) {
-                warning ("cloudnt connect to portal: %s", e.message);
+        public async bool ask_for_background () {
+            bool can_background = saved_state.get_boolean ("background");
+            if (can_background || !FileUtils.test ("/.flatpak-info",  FileTest.EXISTS)) {
+                return true;
             }
+
+            string[] cmd = { "io.elementary.calendar", "--background" };
+            string handle = active_window != null  ? yield ((MainWindow) active_window).export () : "";
+
+            var options = new HashTable<string, Variant> (str_hash, str_equal);
+            options["handle_token"] = Portal.generate_token ();
+            options["reason"] = _("Calendar wants to run on background and initialize with the session for events notifications");
+            options["commandline"] = cmd;
+            options["autostart"] = true;
+            options["dbus-activatable"] = false;
+
+            try {
+                ulong response_id = 0;
+
+                var request = Portal.Background.get ().request_background (handle, options);
+                response_id = request.response.connect ((res) => {
+                    request.disconnect (response_id);
+                    can_background = (res == 0);
+                    ask_for_background.callback ();
+                });
+                yield;
+            } catch (Error e) {
+                warning ("cannot ask for background access: %s", e.message);
+            }
+
+            saved_state.set_boolean ("background", can_background);
+            return can_background;
         }
 
         public static DateTime get_selected_datetime () {

@@ -184,6 +184,24 @@ public class Maya.MainWindow : Hdy.ApplicationWindow {
         return base.configure_event (event);
     }
 
+    public override bool delete_event (Gdk.EventAny event) {
+        var loop = new MainLoop (MainContext.default (), true);
+        ((Application) application).ask_for_background.begin ((obj, res) => {
+            unowned var app = (Application) obj;
+            loop.quit ();
+
+            if (!app.ask_for_background.end (res)) {
+                app.release ();
+            }
+        });
+
+        if (loop.is_running ()) {
+            loop.run ();
+        }
+
+        return base.delete_event (event);
+    }
+
     public async string export () {
         var window = get_window ();
 
