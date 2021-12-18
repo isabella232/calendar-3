@@ -16,7 +16,7 @@
         <p>Minor Updates:</p>
           <ul>
             <li>Ask the user's permission to run in background if required</li>
-          <ul>
+          </ul>
       </description>
     </release>
     <release version="6.1.0" date="2021-12-02" urgency="medium">
