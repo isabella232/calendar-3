@@ -178,12 +178,12 @@ namespace Maya {
 
         public async bool ask_for_background () {
             bool can_background = saved_state.get_boolean ("background");
-            if (can_background || !FileUtils.test ("/.flatpak-info",  FileTest.EXISTS)) {
+            if (can_background || !FileUtils.test ("/.flatpak-info", FileTest.EXISTS)) {
                 return true;
             }
 
             string[] cmd = { "io.elementary.calendar", "--background" };
-            string handle = active_window != null  ? yield ((MainWindow) active_window).export () : "";
+            string handle = active_window != null ? yield ((MainWindow) active_window).export () : "";
 
             var options = new HashTable<string, Variant> (str_hash, str_equal);
             options["handle_token"] = Portal.generate_token ();
