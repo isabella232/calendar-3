@@ -184,7 +184,7 @@ namespace Maya {
 
             var options = new HashTable<string, Variant> (str_hash, str_equal);
             options["handle_token"] = Portal.generate_token ();
-            options["reason"] = _("Calendar wants to run on background and initialize with the session for events notifications");
+            options["reason"] = _("Calendar wants to run in the background and initialize with the session for events notifications");
             options["commandline"] = cmd;
             options["autostart"] = true;
             options["dbus-activatable"] = false;

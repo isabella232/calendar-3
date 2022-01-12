@@ -44,7 +44,7 @@
         </key>
         <key name="background" type="b">
             <default>false</default>
-            <summary>Should keep on background (Flatpak only)</summary>
+            <summary>Should keep running in the background (Flatpak only)</summary>
             <description>if false, the application exits when the window is closed</description>
         </key>
     </schema>
